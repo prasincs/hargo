@@ -66,7 +66,7 @@ func main() {
 			ArgsUsage:   "<.har file> <output dir>",
 			Action: func(c *cli.Context) {
 				harFile := c.Args().First()
-				log.Info("fetch .har file: %s", harFile)
+				log.Infof("fetch .har file: %s", harFile)
 				file, err := os.Open(harFile)
 				if err == nil {
 					r := newReader(file)
@@ -86,7 +86,7 @@ func main() {
 			ArgsUsage:   "<.har file>",
 			Action: func(c *cli.Context) {
 				harFile := c.Args().First()
-				log.Info("curl .har file: %s", harFile)
+				log.Infof("curl .har file: %s", harFile)
 				file, err := os.Open(harFile)
 				if err == nil {
 					r := newReader(file)

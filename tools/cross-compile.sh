@@ -7,8 +7,8 @@ cp LICENSE hargo-$1
 cp README.md hargo-$1
 
 HASH="$(git rev-parse --short HEAD)"
-VERSION="$(go run tools/build-version.go)"
-DATE="$(go run tools/build-date.go)"
+VERSION="$(go run ./tools/build-version)"
+DATE="$(go run ./tools/build-date)"
 
 # Mac
 echo "OSX 64"

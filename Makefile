@@ -5,9 +5,9 @@ VERSION := $(shell git rev-parse HEAD)
 BUILD_DATE := $(shell date -R)
 VCS_URL := $(shell basename `git rev-parse --show-toplevel`)
 VCS_REF := $(shell git log -1 --pretty=%h)
-VERSION = $(shell go run tools/build-version.go)
+VERSION = $(shell go run ./tools/build-version)
 HASH = $(shell git rev-parse --short HEAD)
-DATE = $(shell go run tools/build-date.go)
+DATE = $(shell go run ./tools/build-date)
 
 GOBIN ?= $($GOPATH)/bin
 
