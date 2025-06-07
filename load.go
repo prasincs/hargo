@@ -2,6 +2,7 @@ package hargo
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -35,28 +36,34 @@ func LoadTest(harfile string, r *bufio.Reader, workers int, timeout time.Duratio
 
 	var wg sync.WaitGroup
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	log.Infof("Starting load test with %d workers. Duration %v.", workers, timeout)
 
 	for i := 0; i < workers; i++ {
-		wg.Add(workers)
-		go processEntries(harfile, &har, &wg, i, c, ignoreHarCookies)
+		wg.Add(1)
+		go processEntries(ctx, harfile, &har, &wg, i, c, ignoreHarCookies)
 	}
 
-	if waitTimeout(&wg, timeout) {
-		fmt.Printf("\nTimeout of %.1fs elapsed. Terminating load test.\n", timeout.Seconds())
-	} else {
-		fmt.Println("Wait group finished")
-	}
+	<-ctx.Done()
+	wg.Wait()
+	fmt.Printf("\nTimeout of %.1fs elapsed. Terminating load test.\n", timeout.Seconds())
 
 	return nil
 }
 
-func processEntries(harfile string, har *Har, wg *sync.WaitGroup, wid int, c client.Client, ignoreHarCookies bool) {
+func processEntries(ctx context.Context, harfile string, har *Har, wg *sync.WaitGroup, wid int, c client.Client, ignoreHarCookies bool) {
 	defer wg.Done()
 
 	iter := 0
 
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 
 		testResults := make([]TestResult, 0) // batch results
 
@@ -80,6 +87,11 @@ func processEntries(harfile string, har *Har, wg *sync.WaitGroup, wid int, c cli
 		}
 
 		for _, entry := range har.Log.Entries {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 
 			msg := fmt.Sprintf("[%d,%d] %s", wid, iter, entry.Request.URL)
 
@@ -137,21 +149,5 @@ func processEntries(harfile string, har *Har, wg *sync.WaitGroup, wid int, c cli
 		}
 
 		iter++
-	}
-}
-
-// waitTimeout waits for the waitgroup for the specified max timeout.
-// Returns true if waiting timed out.
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false // completed normally
-	case <-time.After(timeout):
-		return true // timed out
 	}
 }
